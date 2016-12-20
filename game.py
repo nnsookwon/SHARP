@@ -1,6 +1,7 @@
 import pygame
 from random import randint
 import time
+import math
 
 class GameObject(pygame.sprite.Sprite):
 	#any object for the game with img, pos, and/or movement
@@ -79,19 +80,31 @@ try:
     while not gameExit:        
         for event in pygame.event.get():
         	#controlling with keys
-        	#arrow keys = movement
+        	#w,a,s,d keys = movement
         	#space bar = shoot
+            #mouse = direction/angle
+
+            #mouse changes angle
+            if event.type == pygame.MOUSEMOTION:
+                posx, posy = pygame.mouse.get_pos()
+                playerX = 50+player.dx
+                playerY = 50+player.dx
+                aimx = -1*(playerY-posy)
+                aimy = playerX - posx
+                angle = math.atan2(float(aimx), float(aimy))
+                player.image = pygame.transform.rotate(player.image, angle)
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     gameExit = False
                     break
-                if event.key == pygame.K_LEFT:
+                if event.key == pygame.K_a:
                 	player.dx = -player.step
-                if event.key == pygame.K_RIGHT:
+                if event.key == pygame.K_d:
                 	player.dx = player.step
-                if event.key == pygame.K_UP:
+                if event.key == pygame.K_w:
                 	player.dy = -player.step	
-                if event.key == pygame.K_DOWN:
+                if event.key == pygame.K_s:
                 	player.dy = player.step
                 if event.key == pygame.K_SPACE and \
              	    player.hasBall:
@@ -103,11 +116,11 @@ try:
                 	ball.move() #to "break" away from player
                 	
             elif event.type == pygame.KEYUP:
-            	if event.key == pygame.K_LEFT or \
-            		event.key == pygame.K_RIGHT:
+            	if event.key == pygame.K_a or \
+            		event.key == pygame.K_d:
             		player.dx = 0
-            	if event.key == pygame.K_UP or \
-            		event.key == pygame.K_DOWN:
+            	if event.key == pygame.K_w or \
+            		event.key == pygame.K_s:
             		player.dy = 0  
             elif event.type == pygame.QUIT:
                 gameExit = False
