@@ -22,17 +22,23 @@ class GameObject(pygame.sprite.Sprite):
 	def move(self):
 		newPos = self.rect.move((self.dx, self.dy))
 		for sprite in allsprites: #prevent sprite collision
-			if sprite is not self and \
-				sprite is not goal and \
+			if sprite is not self and\
 				newPos.colliderect(sprite.rect):
-				return
+			#collision detected, check if this is allowed
+				if player.hasBall:
+				#if Player has ball, no sprite can collide.
+				#Player can NOT "walk" ball into goal
+					return
+				else:
+					if not (self is ball and sprite is goal):
+					#OK for ball and goal overlap,
+					#if Player is not in possession
+						return
 		if self.area.contains(newPos):
 			self.rect = newPos
 
 def randomPos(x_min, x_max, y_min, y_max):
 	return (randint(x_min, x_max), randint(y_min, y_max))
-
-
 
 pygame.init()
 
@@ -77,91 +83,96 @@ clock = pygame.time.Clock()
 allsprites = pygame.sprite.RenderPlain((player, ball, goal))
 
 try:
-    while not gameExit:        
-        for event in pygame.event.get():
-        	#controlling with keys
-        	#w,a,s,d keys = movement
-        	#space bar = shoot
-            #mouse = direction/angle
+	while not gameExit:        
+		for event in pygame.event.get():
+			#controlling with keys
+			#w,a,s,d keys = movement
+			#space bar = shoot
+			#mouse = direction/angle
 
-            #mouse changes angle
-            if event.type == pygame.MOUSEMOTION:
-                posx, posy = pygame.mouse.get_pos()
-                playerX = 50+player.dx
-                playerY = 50+player.dx
-                aimx = -1*(playerY-posy)
-                aimy = playerX - posx
-                angle = math.atan2(float(aimx), float(aimy))
-                player.image = pygame.transform.rotate(player.image, angle)
+			if player.hasBall:
+				#if ball is shot, direction points towards mouse			
+				mouseX, mouseY = pygame.mouse.get_pos()
+				playerX, playerY = player.rect.bottomright
+				aimX = mouseX - playerX
+				aimY = mouseY - playerY
+				angle = math.atan2(float(aimY), float(aimX))
+				#player.image = pygame.transform.rotate(player.image, angle)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    gameExit = False
-                    break
-                if event.key == pygame.K_a:
-                	player.dx = -player.step
-                if event.key == pygame.K_d:
-                	player.dx = player.step
-                if event.key == pygame.K_w:
-                	player.dy = -player.step	
-                if event.key == pygame.K_s:
-                	player.dy = player.step
-                if event.key == pygame.K_SPACE and \
-             	    player.hasBall:
-                	player.hasBall = False
-                	#shoot straight for now
-                	#implement angles/direction later
-                	ball.dy = 0
-                	ball.dx = 15
-                	ball.move() #to "break" away from player
-                	
-            elif event.type == pygame.KEYUP:
-            	if event.key == pygame.K_a or \
-            		event.key == pygame.K_d:
-            		player.dx = 0
-            	if event.key == pygame.K_w or \
-            		event.key == pygame.K_s:
-            		player.dy = 0  
-            elif event.type == pygame.QUIT:
-                gameExit = False
-                break
-                
-            if gameExit:
-                pygame.quit()
-                sys.exit()
-        
-        if player.hasBall: #ball moves player
-        	ball.dx = player.dx
-        	ball.dy = player.dy        
-       
-        allsprites.update()
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					gameExit = False
+					break
+				if event.key == pygame.K_a:
+					player.dx = -player.step
+				if event.key == pygame.K_d:
+					player.dx = player.step
+				if event.key == pygame.K_w:
+					player.dy = -player.step    
+				if event.key == pygame.K_s:
+					player.dy = player.step
+				if event.key == pygame.K_SPACE and \
+					player.hasBall:
+					player.hasBall = False
+					#shoot straight for now
+					#implement angles/direction later
+					ball.force = 20 #implement later: depending on force sensor
+					ball.dy = ball.force * math.sin(angle)
+					ball.dx = ball.force * math.cos(angle)
+					ball.move() #to "break" away from player
+					
+			elif event.type == pygame.KEYUP:
+				if event.key == pygame.K_a or \
+					event.key == pygame.K_d:
+					player.dx = 0
+				if event.key == pygame.K_w or \
+					event.key == pygame.K_s:
+					player.dy = 0  
+			elif event.type == pygame.QUIT:
+				gameExit = False
+				break
+				
+			if gameExit:
+				pygame.quit()
+				sys.exit()
+		
+		if player.hasBall: #ball moves player
+			ball.dx = player.dx
+			ball.dy = player.dy        
+	   
+		allsprites.update()
 
-        if ball.rect.top >= player.rect.centery and \
-        	ball.rect.bottom <= player.rect.bottom and \
-        	ball.rect.left - 10 <= player.rect.right and \
-        	ball.rect.left + 10 >= player.rect.right:
-        	#ball must be positioned to the right of player, 
-        	#and in the bottom half portion of the player
-        	player.hasBall = True
+		if ball.rect.top >= player.rect.centery and \
+			ball.rect.bottom <= player.rect.bottom and \
+			ball.rect.left - 10 <= player.rect.right and \
+			ball.rect.left + 10 >= player.rect.right:
+			#ball must be positioned to the right of player, 
+			#and in the bottom half portion of the player
+			player.hasBall = True
 
-        screen.fill(WHITE)
-        allsprites.draw(screen)
-        pygame.display.update()
+		screen.fill(WHITE)
+		allsprites.draw(screen)
+		pygame.display.update()
 
-        if(goal.rect.contains(ball.rect)):
-        	time.sleep(2) #2 second delay
-        	ball.dx = 0
-        	ball.dy = 0
-        	while True: #repeat if new ball position overlaps Player
-        		ball.rect.topleft = randomPos(100, DISPLAY_WIDTH/2,
-        								  	100, DISPLAY_HEIGHT-20)
-        		if not ball.rect.colliderect(player.rect):
-        			break
+		#check if ball landed in goal
+		if(goal.rect.contains(ball.rect)):
+			time.sleep(2) #2 second delay
+			player.hasBall = False
+			ball.dx = 0
+			ball.dy = 0
+			while True: 
+				#repeat if new ball position overlaps Player
+				#new position in left half of the screen
+				ball.rect.topleft = randomPos(100, DISPLAY_WIDTH/2,
+											100, DISPLAY_HEIGHT-20)
+				if not ball.rect.colliderect(player.rect):
+					break
 
 
-        clock.tick(30) #fps
+		clock.tick(30) #fps
+
 except SystemExit:
-    pygame.quit()	
+	pygame.quit()   
 
 
 
