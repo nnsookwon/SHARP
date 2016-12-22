@@ -101,7 +101,7 @@ try:
 
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_ESCAPE:
-					gameExit = False
+					gameExit = True
 					break
 				if event.key == pygame.K_a:
 					player.dx = -player.step
@@ -129,7 +129,7 @@ try:
 					event.key == pygame.K_s:
 					player.dy = 0  
 			elif event.type == pygame.QUIT:
-				gameExit = False
+				gameExit = True
 				break
 				
 			if gameExit:
