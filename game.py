@@ -89,16 +89,7 @@ try:
 			#w,a,s,d keys = movement
 			#space bar = shoot
 			#mouse = direction/angle
-
-			if player.hasBall:
-				#if ball is shot, direction points towards mouse			
-				mouseX, mouseY = pygame.mouse.get_pos()
-				playerX, playerY = player.rect.bottomright
-				aimX = mouseX - playerX
-				aimY = mouseY - playerY
-				angle = math.atan2(float(aimY), float(aimX))
-				#player.image = pygame.transform.rotate(player.image, angle)
-
+			
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_ESCAPE:
 					gameExit = True
@@ -114,8 +105,15 @@ try:
 				if event.key == pygame.K_SPACE and \
 					player.hasBall:
 					player.hasBall = False
-					#shoot straight for now
 					#implement angles/direction later
+					
+					#if ball is shot, direction points towards mouse			
+					mouseX, mouseY = pygame.mouse.get_pos()
+					playerX, playerY = player.rect.bottomright
+					aimX = mouseX - playerX
+					aimY = mouseY - playerY
+					angle = math.atan2(float(aimY), float(aimX))
+					#player.image = pygame.transform.rotate(player.image, angle)
 					ball.force = 20 #implement later: depending on force sensor
 					ball.dy = ball.force * math.sin(angle)
 					ball.dx = ball.force * math.cos(angle)
