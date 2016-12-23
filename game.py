@@ -67,6 +67,7 @@ player.hasBall = False
 ball_img = pygame.image.load('ball.png').convert()
 ball_img = pygame.transform.scale(ball_img, (20,20))
 ball = GameObject(ball_img, (200,200), player.step)
+ball.angle = 0
 
 goal_img = pygame.Surface((GOAL_WIDTH, GOAL_HEIGHT))
 goal_img.fill(BLUE)
@@ -112,11 +113,11 @@ try:
 					playerX, playerY = player.rect.bottomright
 					aimX = mouseX - playerX
 					aimY = mouseY - playerY
-					angle = math.atan2(float(aimY), float(aimX))
+					ball.angle = math.atan2(float(aimY), float(aimX))
 					#player.image = pygame.transform.rotate(player.image, angle)
 					ball.force = 20 #implement later: depending on force sensor
-					ball.dy = ball.force * math.sin(angle)
-					ball.dx = ball.force * math.cos(angle)
+					ball.dy = ball.force * math.sin(ball.angle)
+					ball.dx = ball.force * math.cos(ball.angle)
 					ball.move() #to "break" away from player
 					
 			elif event.type == pygame.KEYUP:
