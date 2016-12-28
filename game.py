@@ -40,29 +40,47 @@ class Ball(pygame.sprite.Sprite):
 		self.rect.topleft = pos #(x_pos, y_pos)
 		self.dx = 0
 		self.dy = 0
+		self.speed = 0
+		self.angle = 0
+		self.isShot = False
 
 	def update(self):
 		self.move()
+		if self.isShot:
+			self.speed *= 0.95
 
 	def move(self):
+		if self.isShot:
+			self.dx = self.speed * math.cos(self.angle)
+			self.dy = self.speed * math.sin(self.angle)
+			if self.angle != 0 and (math.fabs(self.dx) < 2 or math.fabs(self.dy) < 2):
+				self.dx = self.dy = 0
+				self.isShot = False
+				self.speed = 0
+				return
 		newPos = self.rect.move((self.dx, self.dy))
 		
 		for sprite in allsprites: #prevent sprite collision
 			if sprite is not self and \
 				newPos.colliderect(sprite.rect):
-				#collision detected, check if this is allowed
-				if player.hasBall:
-				#if Player has ball, no sprite can collide.
-				#Player can NOT "walk" ball into goal
 					return
 					
 		if self.area.contains(newPos) or \
-			(goal.rect.collidepoint(newPos.bottomright) and \
-			goal.rect.collidepoint(newPos.topright)):
+			(goal.collidepoint(newPos.bottomright) and \
+			goal.collidepoint(newPos.topright) and \
+			not player.hasBall):
+			#Player can NOT "walk" ball into goal
 			self.rect = newPos
 
 def randomPos(x_min, x_max, y_min, y_max):
 	return (randint(x_min, x_max), randint(y_min, y_max))
+
+def drawField():
+	screen.fill(GREEN)
+	pygame.draw.rect(screen, BLUE, goal, 3)
+	pygame.draw.rect(screen, BLACK, field, 1)
+	pygame.draw.rect(screen, BLACK, penalty_box, 1 )
+
 
 pygame.init()
 
@@ -106,13 +124,17 @@ player_img = pygame.image.load('player.png').convert()
 player_img.set_colorkey(WHITE)
 player_img = pygame.transform.scale(player_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
 player = Player(player_img, (50,50), 10)
-player.hasBall = False
 
 ball_img = pygame.image.load('ball.png').convert()
 ball_img = pygame.transform.scale(ball_img, (BALL_WIDTH, BALL_HEIGHT))
 ball = Ball(ball_img, (200,200), field)
-ball.angle = 0
 
+goal = pygame.Rect(  DISPLAY_WIDTH - GOAL_WIDTH, \
+			  		(DISPLAY_HEIGHT - GOAL_HEIGHT)/2, \
+			  		 GOAL_WIDTH, GOAL_HEIGHT )
+
+
+"""
 goal_img = pygame.Surface((GOAL_WIDTH, GOAL_HEIGHT))
 goal_img.fill(BLUE)
 goal = pygame.sprite.Sprite()
@@ -120,7 +142,7 @@ goal.image = goal_img
 goal.rect = goal.image.get_rect()
 goal.rect.topleft = ( DISPLAY_WIDTH - GOAL_WIDTH, \
 			  (DISPLAY_HEIGHT - GOAL_HEIGHT)/2) 
-
+"""
 
 pygame.display.update()
 
@@ -128,10 +150,22 @@ gameExit = False
 
 clock = pygame.time.Clock()
 
-allsprites = pygame.sprite.RenderPlain((player, ball, goal))
+allsprites = pygame.sprite.RenderPlain((player, ball))
 
 try:
-	while not gameExit:        
+	while not gameExit:
+
+		keys_pressed = pygame.key.get_pressed()
+		if keys_pressed[pygame.K_SPACE] and \
+			player.hasBall:
+			#hold spacebar to build up power and kick further
+			#implement later to correspond to force sensor feedback
+			ball.speed += 1
+			print ball.speed
+			if ball.speed > 50:
+				ball.speed = 50 
+				print "max speed"
+	
 		for event in pygame.event.get():
 			#controlling with keys
 			#w,a,s,d keys = movement
@@ -150,11 +184,33 @@ try:
 					player.dy = -player.step    
 				if event.key == pygame.K_s:
 					player.dy = player.step
-				if event.key == pygame.K_SPACE and \
-					player.hasBall:
-					player.hasBall = False
-					#implement angles/direction later
+				
+
+				"""
+				*************AIMING WITH ARROWS**************
+				*********INCREMENTS OF 30 DEGREES************
+				"""
+				if event.key == pygame.K_UP:
+					ball.angle = ball.angle - math.pi/6
+					ball.angle = -math.pi/2 if ball.angle < -math.pi/2 \
+								else ball.angle
+					#"reversed" because top y-position is 0, so positive is downwards
+				if event.key == pygame.K_DOWN:
+					ball.angle = ball.angle + math.pi/6
+					ball.angle = math.pi/2 if ball.angle > math.pi/2 \
+								else ball.angle
 					
+			elif event.type == pygame.KEYUP:
+				if event.key == pygame.K_a or \
+					event.key == pygame.K_d:
+					player.dx = 0
+				if event.key == pygame.K_w or \
+					event.key == pygame.K_s:
+					player.dy = 0
+				if event.key == pygame.K_SPACE:
+					player.hasBall = False		
+					ball.isShot = True			
+					print ball.speed #for debugging purposes
 					"""
 					***********AIMING WITH MOUSE****************
 					**********FREE RANGE OF SHOOTING************
@@ -168,32 +224,7 @@ try:
 					#player.image = pygame.transform.rotate(player.image, angle)
 					"""
 
-					ball.force = 20 #implement later: depending on force sensor
-					ball.dy = ball.force * math.sin(ball.angle)
-					ball.dx = ball.force * math.cos(ball.angle)
-					ball.move() #to "break" away from player
-
-				"""
-				*************AIMING WITH ARROWS**************
-				*********INCREMENTS OF 30 DEGREES************
-				"""
-				if event.key == pygame.K_UP:
-					ball.angle = ball.angle - math.pi/6
-					ball.angle = -math.pi/2 if ball.angle < -math.pi/2 \
-								else ball.angle
-					#"reversed" because y-position is 0, so positive is downwards
-				if event.key == pygame.K_DOWN:
-					ball.angle = ball.angle + math.pi/6
-					ball.angle = math.pi/2 if ball.angle > math.pi/2 \
-								else ball.angle
-					
-			elif event.type == pygame.KEYUP:
-				if event.key == pygame.K_a or \
-					event.key == pygame.K_d:
-					player.dx = 0
-				if event.key == pygame.K_w or \
-					event.key == pygame.K_s:
-					player.dy = 0  
+					ball.move() #to "break" away from player 
 			elif event.type == pygame.QUIT:
 				gameExit = True
 				break
@@ -214,20 +245,26 @@ try:
 			ball.rect.left + 10 >= player.rect.right:
 			#ball must be positioned to the right of player, 
 			#and in the bottom half portion of the player
-			player.hasBall = True
+			if not player.hasBall:
+				player.hasBall = True
+				ball.isShot = False
+				ball.speed = 0
 
-		screen.fill(GREEN)
-		pygame.draw.rect(screen, BLACK, field, 1)
-		pygame.draw.rect(screen, BLACK, penalty_box, 1 )
+		drawField()
 		allsprites.draw(screen)
-		pygame.display.update()
+		if player.hasBall:
+			(ball_x, ball_y) = ball.rect.midright
+			#draw aiming arrow for shooting direction
+			pygame.draw.line(screen, RED, (ball_x, ball_y), (ball_x + 50*math.cos(ball.angle), ball_y + 50*math.sin(ball.angle)))
 
+		pygame.display.update()
 		#check if ball landed in goal
-		if(goal.rect.contains(ball.rect)):
+		if(goal.contains(ball.rect)):
 			time.sleep(2) #2 second delay
 			player.hasBall = False
 			ball.dx = 0
 			ball.dy = 0
+			ball.speed = 0
 			while True: 
 				#repeat if new ball position overlaps Player
 				#new position in left half of the screen
