@@ -22,6 +22,8 @@ class Player(pygame.sprite.Sprite):
 	def move(self):
 		newPos = self.rect.move((self.dx, self.dy))
 		for sprite in allsprites: #prevent sprite collision
+			if sprite is ball:
+				ball.update()
 			if sprite is not self and \
 				newPos.colliderect(sprite.rect):
 				return
@@ -130,17 +132,26 @@ def drawField():
 	pygame.draw.rect(screen, BLACK, field, 1)
 	pygame.draw.rect(screen, BLACK, penalty_box, 1 )
 
+def addOpponent(x, y):
+	opp_img = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT))
+	opp_img.fill(RED)
+	opponent = pygame.sprite.Sprite()
+	opponent.image = opp_img
+	opponent.rect = opponent.image.get_rect()
+	opponent.rect.topleft = (x, y)
+	allsprites.add(opponent)
+
 
 pygame.init()
 
-DISPLAY_WIDTH = 800
-DISPLAY_HEIGHT = 600
+DISPLAY_WIDTH = 1080
+DISPLAY_HEIGHT = 640
 
 GOAL_WIDTH = 70 	
 GOAL_HEIGHT = 200
 
 PLAYER_WIDTH = 50
-PLAYER_HEIGHT = 80
+PLAYER_HEIGHT = 70
 
 BALL_WIDTH = 20
 BALL_HEIGHT = 20
@@ -157,6 +168,7 @@ RED = (255,0,0)
 BLUE = (0,0,255)
 GREEN = (0,255,0)
 
+#FOR FULLSCREEN
 #screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
 screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 pygame.display.set_caption("SHARP")
@@ -170,14 +182,14 @@ penalty_box = pygame.Rect( (DISPLAY_WIDTH - PENALTY_BOX_WIDTH - GOAL_WIDTH), \
 						   (DISPLAY_HEIGHT - PENALTY_BOX_HEIGHT)/2, \
 						    PENALTY_BOX_WIDTH, PENALTY_BOX_HEIGHT)
 
-player_img = pygame.image.load('player.png').convert()
-player_img.set_colorkey(WHITE)
+player_img = pygame.image.load('player.png').convert_alpha()
+#player_img.set_colorkey(WHITE)
 player_img = pygame.transform.scale(player_img, (PLAYER_WIDTH, PLAYER_HEIGHT))
 player = Player(player_img, (50,50), 10)
 
-ball_img = pygame.image.load('ball.png').convert()
+ball_img = pygame.image.load('ball.png').convert_alpha()
 ball_img = pygame.transform.scale(ball_img, (BALL_WIDTH, BALL_HEIGHT))
-ball = Ball(ball_img, (200,200), field)
+ball = Ball(ball_img, (150,200), field)
 
 goal = pygame.Rect(  DISPLAY_WIDTH - GOAL_WIDTH, \
 			  		(DISPLAY_HEIGHT - GOAL_HEIGHT)/2, \
@@ -187,6 +199,14 @@ goalie_img = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT))
 goalie_img.fill(BLUE)
 goalie = Goalie(goalie_img, (FIELD_WIDTH - PLAYER_WIDTH, field.centery), \
 				goal.top - 50, goal.bottom + 50, 5)
+
+
+allsprites = pygame.sprite.Group((player, ball, goalie))
+
+addOpponent(300, DISPLAY_HEIGHT/2 - PLAYER_HEIGHT/2)
+addOpponent(510, DISPLAY_HEIGHT/2 - PLAYER_HEIGHT/2 + 150)
+addOpponent(510, DISPLAY_HEIGHT/2 - PLAYER_HEIGHT/2 - 150)
+addOpponent(700, DISPLAY_HEIGHT/2 - PLAYER_HEIGHT/2)
 
 """
 goal_img = pygame.Surface((GOAL_WIDTH, GOAL_HEIGHT))
@@ -204,7 +224,6 @@ gameIsRunning = True
 
 clock = pygame.time.Clock()
 
-allsprites = pygame.sprite.RenderPlain((player, ball, goalie))
 
 try:
 	while gameIsRunning:
@@ -312,12 +331,15 @@ try:
 				ball.angle = 0
 
 		drawField()
-		allsprites.draw(screen)
 		if player.hasBall:
+			ball.rect.bottomleft = player.rect.bottomright
 			(ball_x, ball_y) = ball.rect.midright
 			#draw aiming arrow for shooting direction
 			pygame.draw.line(screen, RED, (ball_x, ball_y), \
 			 (ball_x + 50*math.cos(ball.angle), ball_y + 50*math.sin(ball.angle)), 4)
+
+		
+		allsprites.draw(screen)
 
 		pygame.display.update()
 
