@@ -68,7 +68,15 @@ class Opponent(pygame.sprite.Sprite):
 		for sprite in allsprites: #prevent sprite collision
 			if sprite is not self and \
 				newPos.colliderect(sprite.rect):
-				return
+				if sprite is ball:
+					if not ball.isShot:
+						ball.dx = self.dx
+						ball.dy = self.dy
+					else:
+						ball.speed += 5
+					ball.update()
+				if newPos.colliderect(sprite.rect):
+					return
 		self.rect = newPos
 		if self.rect.bottom > self.max_y or \
 			self.rect.top < self.min_y:
@@ -116,7 +124,8 @@ class Ball(pygame.sprite.Sprite):
 			self.dx = self.speed * math.cos(self.angle)
 			self.dy = self.speed * math.sin(self.angle)
 			
-			if self.angle % math.pi != 0 and (math.fabs(self.dx) < 2 or math.fabs(self.dy) < 2):
+			if math.fabs(self.dx) < 1 or \
+			(self.angle % math.pi != 0 and math.fabs(self.dy) < 1):
 				self.dx = self.dy = 0
 				self.isShot = False
 				self.speed = 0
@@ -162,7 +171,7 @@ def randomPos(x_min, x_max, y_min, y_max):
 	return (randint(x_min, x_max), randint(y_min, y_max))
 
 def drawField():
-	screen.fill(GREEN)
+	screen.fill(FIELD_GREEN)
 	pygame.draw.rect(screen, BLUE, goal, 3)
 	pygame.draw.rect(screen, BLACK, field, 1)
 	pygame.draw.rect(screen, BLACK, penalty_box, 1 )
@@ -193,7 +202,12 @@ def initLevel(levelChoice):
 		addOpponent(700, DISPLAY_HEIGHT/2, True, 200, 7)
 
 
+"""******START OF GAME CODE******"""
+
 pygame.init()
+
+
+"""******GLOBAL CONSTANTS******"""
 
 DISPLAY_WIDTH = 1080
 DISPLAY_HEIGHT = 640
@@ -218,6 +232,7 @@ WHITE = (255,255,255)
 RED = (255,0,0)
 BLUE = (0,0,255)
 GREEN = (0,255,0)
+FIELD_GREEN = (0, 128, 0)
 
 MENU_OPTIONS = ['Level 1', 'Level 2', 'Level 3', 'Level 4', 'Quit']
 
@@ -231,6 +246,7 @@ gameIsRunning = True
 field = pygame.Rect( 0, PLAYER_HEIGHT - BALL_HEIGHT, \
 					 FIELD_WIDTH, \
  					 FIELD_HEIGHT)
+
 
 penalty_box = pygame.Rect( (DISPLAY_WIDTH - PENALTY_BOX_WIDTH - GOAL_WIDTH), \
 						   (DISPLAY_HEIGHT - PENALTY_BOX_HEIGHT)/2, \
@@ -379,8 +395,10 @@ def playGame():
 				ball.dx = player.dx
 				ball.dy = player.dy        
 		   
-		   	ball.update()
+		   	
+			ball.update()
 		   	player.update()
+
 			opponentsprites.update()
 
 			#if player.hasBall:
